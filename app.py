@@ -136,6 +136,22 @@ html, body, [class*="css"] {
     background: #FAFAF8 !important;
     font-family: 'DM Sans', sans-serif !important;
     font-size: 0.875rem !important;
+    color: #1A1A1A !important;
+}
+
+/* Fix all markdown text color */
+.stMarkdown, .stMarkdown p, .stMarkdown li,
+.stMarkdown strong, .stMarkdown em {
+    color: #1A1A1A !important;
+}
+
+/* Fix expander label and content */
+.streamlit-expanderHeader p {
+    color: #1A1A1A !important;
+}
+.streamlit-expanderContent .stMarkdown span,
+.streamlit-expanderContent p {
+    color: #444 !important;
 }
 
 /* File uploader */
@@ -224,14 +240,18 @@ hr { border: none; border-top: 1px solid #E5E4DF; margin: 24px 0; }
 
 def _init_state():
     defaults = {
-        "step":        1,        # 1=upload  2=profile  3=generate  4=done
-        "db_path":     None,
-        "profile":     None,
-        "resume":      None,
-        "pdf_path":    None,
-        "api_key":     "",
-        "jd":          "",
-        "log":         [],
+        "step":             1,
+        "db_path":          None,
+        "profile":          None,
+        "resume":           None,
+        "pdf_path":         None,
+        "api_key":          "",
+        "jd":               "",
+        "log":              [],
+        "contact_phone":    "",
+        "contact_email":    "",
+        "contact_linkedin": "",
+        "contact_portfolio":"",
     }
     for k, v in defaults.items():
         if k not in st.session_state:
@@ -276,7 +296,8 @@ def _show_log():
     if S["log"]:
         with st.expander("📋 Activity log", expanded=False):
             for line in S["log"]:
-                st.text(line)
+                st.markdown(f'<span style="color:#444;font-size:0.8rem">{line}</span>',
+                            unsafe_allow_html=True)
 
 # ── STEP 1: Upload LinkedIn export ────────────────────────────────────────────
 
@@ -379,6 +400,34 @@ elif S["step"] == 2:
     st.markdown('<div class="step-label">Step 2 of 4</div>', unsafe_allow_html=True)
     st.markdown(f'<div class="step-title">Profile loaded for {name or "you"}</div>',
                 unsafe_allow_html=True)
+
+    # ── Contact info fields ───────────────────────────────────────────────────
+    st.markdown("**Contact details** — these will appear in your resume header")
+    c1, c2 = st.columns(2, gap="large")
+    with c1:
+        phone = st.text_input("Phone number",
+            value=S.get("contact_phone", ""),
+            placeholder="+1 (555) 123-4567")
+        email = st.text_input("Email address",
+            value=S.get("contact_email", ""),
+            placeholder="you@email.com")
+    with c2:
+        linkedin = st.text_input("LinkedIn URL",
+            value=S.get("contact_linkedin", ""),
+            placeholder="linkedin.com/in/yourname")
+        # Pre-fill portfolio from parsed websites if available
+        existing_sites = personal.get("websites", [])
+        portfolio = st.text_input("Portfolio / GitHub URL",
+            value=S.get("contact_portfolio",
+                        existing_sites[0] if existing_sites else ""),
+            placeholder="github.com/yourname")
+
+    S["contact_phone"]     = phone
+    S["contact_email"]     = email
+    S["contact_linkedin"]  = linkedin
+    S["contact_portfolio"] = portfolio
+
+    st.markdown("<hr>", unsafe_allow_html=True)
 
     col1, col2 = st.columns(2, gap="large")
 
@@ -495,6 +544,12 @@ elif S["step"] == 3:
 
                 progress.progress(70, text="Assembling resume…")
                 resume = gen._assemble(profile, selection, rewrites, missing)
+
+                # Inject contact details from step 2
+                resume["personal"]["phone"]     = S.get("contact_phone", "")
+                resume["personal"]["email"]     = S.get("contact_email", "")
+                resume["personal"]["linkedin"]  = S.get("contact_linkedin", "")
+                resume["personal"]["portfolio"] = S.get("contact_portfolio", "")
 
                 progress.progress(85, text="Rendering PDF — measuring fit…")
                 resume = gen._enforce_one_page(resume)

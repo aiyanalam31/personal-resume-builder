@@ -55,6 +55,13 @@ def _read_csv_from_folder(folder: str, name: str) -> list[dict]:
         return list(csv.DictReader(f))
 
 
+def _clean_url(url: str) -> str:
+    """Strip LinkedIn's [TYPE:url] wrapper — e.g. [PERSONAL:https://x.com] -> https://x.com"""
+    import re
+    match = re.match(r'^\[.*?:(https?://.*?)\]$', url)
+    return match.group(1) if match else url
+
+
 def _strip(val: str | None) -> str:
     """Strip whitespace and return empty string for None/whitespace-only."""
     return (val or "").strip()
@@ -88,7 +95,7 @@ def parse_profile(rows: list[dict]) -> dict:
         "summary":     _first(r, "Summary"),
         "location":    _first(r, "Geo Location", "Address"),
         "industry":    _first(r, "Industry"),
-        "websites":    [w.strip() for w in _first(r, "Websites").split(",") if w.strip()],
+        "websites":    [_clean_url(w.strip()) for w in _first(r, "Websites").split(",") if w.strip()],
     }
 
 

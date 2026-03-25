@@ -185,23 +185,32 @@ def _section_heading(title: str) -> list:
 
 
 def build_header(personal: dict) -> tuple[list, float]:
-    name     = personal.get("name", "")
-    headline = personal.get("headline", "")
-    location = personal.get("location", "")
-    websites = personal.get("websites", [])
+    name      = personal.get("name", "")
+    phone     = personal.get("phone", "").strip()
+    email     = personal.get("email", "").strip()
+    linkedin  = personal.get("linkedin", "").strip()
+    portfolio = personal.get("portfolio", "").strip()
+    location  = personal.get("location", "").strip()
 
-    contact_parts = [p for p in [location] + websites if p]
-    contact_str   = "  ·  ".join(contact_parts)
+    # Line 1: phone · email · location
+    line1_parts = [p for p in [phone, email, location] if p]
+    line1 = "  ·  ".join(line1_parts)
+
+    # Line 2: linkedin · portfolio
+    line2_parts = [p for p in [linkedin, portfolio] if p]
+    line2 = "  ·  ".join(line2_parts)
 
     flowables = [
         Paragraph(name, STYLES["name"]),
-        Paragraph(headline, STYLES["headline"]),
     ]
-    if contact_str:
+    if line1:
         flowables.append(VSpace(2))
-        flowables.append(Paragraph(contact_str, STYLES["contact"]))
+        flowables.append(Paragraph(line1, STYLES["contact"]))
+    if line2:
+        flowables.append(Paragraph(line2, STYLES["contact"]))
     flowables.append(VSpace(4))
-    flowables.append(HRule(CONTENT_W, thickness=1.0, color=ACCENT, space_before=0, space_after=6))
+    flowables.append(HRule(CONTENT_W, thickness=1.0, color=ACCENT,
+                           space_before=0, space_after=6))
 
     return flowables, _measure_flowables(flowables, CONTENT_W)
 
